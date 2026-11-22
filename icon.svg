@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0a0f0a"/>
+  <g fill="#33ff33" stroke="#33ff33" stroke-width="16"
+     stroke-linejoin="round" stroke-linecap="round">
+    <!-- Orejas -->
+    <path d="M 170 230 L 140 140 L 220 190 Z"/>
+    <path d="M 342 230 L 372 140 L 292 190 Z"/>
+    <!-- Cabeza -->
+    <ellipse cx="256" cy="300" rx="120" ry="105" fill="none" stroke-width="18"/>
+    <!-- Ojos -->
+    <circle cx="216" cy="290" r="14" stroke="none"/>
+    <circle cx="296" cy="290" r="14" stroke="none"/>
+    <!-- Nariz -->
+    <path d="M 244 325 L 256 338 L 268 325 Z"/>
+    <!-- Boca -->
+    <path d="M 256 338 Q 242 362 228 356" fill="none" stroke-width="14"/>
+    <path d="M 256 338 Q 270 362 284 356" fill="none" stroke-width="14"/>
+  </g>
+</svg>
