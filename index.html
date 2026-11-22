@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="green">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0a0f0a">
+  <meta name="theme-color" content="#0a0a0a">
   <meta name="description" content="Meow Notes App - Terminal de notas estilo CRT">
   <title>Meow Notes App</title>
 
@@ -15,51 +15,103 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 
+  <!-- Aplicar tema ANTES del render para evitar parpadeo -->
+  <script>
+    (function () {
+      // Migración del sistema antiguo
+      var oldTheme = localStorage.getItem('meow-theme');
+      if (oldTheme && !localStorage.getItem('meow-accent')) {
+        localStorage.setItem('meow-accent', oldTheme);
+      }
+      if (oldTheme) localStorage.removeItem('meow-theme');
+
+      var mode   = localStorage.getItem('meow-mode')   || 'dark';
+      var bg     = localStorage.getItem('meow-bg')     || 'mono';
+      var accent = localStorage.getItem('meow-accent') || 'green';
+
+      var root = document.documentElement;
+      root.setAttribute('data-mode', mode);
+      root.setAttribute('data-bg', bg);
+      root.setAttribute('data-accent', accent);
+    })();
+  </script>
+
   <style>
     /* ============================================================
-       TEMAS CRT — cada uno redefine las variables de color
+       RESET Y BASE
        ============================================================ */
-    :root, [data-theme="green"] {
-      --bg: #0a0f0a;         --bg-glow: #0e1a0e;       --bg-dark: #050805;
-      --panel: #0d140d;      --fg: #33ff33;            --fg-dim: #1a8c1a;
-      --fg-bright: #7cff7c;  --border: #1f3a1f;        --border-bright: #33ff33;
-      --glow: 0 0 8px #33ff33; --glow-soft: 0 0 4px #33ff33;
-    }
-    [data-theme="amber"] {
-      --bg: #0f0a00;         --bg-glow: #1a0e00;       --bg-dark: #080500;
-      --panel: #140d00;      --fg: #ffb000;            --fg-dim: #8c6000;
-      --fg-bright: #ffd060;  --border: #3a2800;        --border-bright: #ffb000;
-      --glow: 0 0 8px #ffb000; --glow-soft: 0 0 4px #ffb000;
-    }
-    [data-theme="cyan"] {
-      --bg: #000a0f;         --bg-glow: #000e1a;       --bg-dark: #000508;
-      --panel: #000d14;      --fg: #00e5ff;            --fg-dim: #007a8c;
-      --fg-bright: #66f0ff;  --border: #003a4a;        --border-bright: #00e5ff;
-      --glow: 0 0 8px #00e5ff; --glow-soft: 0 0 4px #00e5ff;
-    }
-    [data-theme="white"] {
-      --bg: #0a0a0a;         --bg-glow: #141414;       --bg-dark: #050505;
-      --panel: #101010;      --fg: #e0e0e0;            --fg-dim: #7a7a7a;
-      --fg-bright: #ffffff;  --border: #2a2a2a;        --border-bright: #e0e0e0;
-      --glow: 0 0 8px #e0e0e0; --glow-soft: 0 0 4px #e0e0e0;
-    }
-    [data-theme="purple"] {
-      --bg: #0a0014;         --bg-glow: #0e001a;       --bg-dark: #050008;
-      --panel: #0f001a;      --fg: #c066ff;            --fg-dim: #6a3399;
-      --fg-bright: #d99cff;  --border: #3a1a55;        --border-bright: #c066ff;
-      --glow: 0 0 8px #c066ff; --glow-soft: 0 0 4px #c066ff;
-    }
-    [data-theme="red"] {
-      --bg: #0f0000;         --bg-glow: #1a0000;       --bg-dark: #080000;
-      --panel: #140000;      --fg: #ff4444;            --fg-dim: #8c1a1a;
-      --fg-bright: #ff8080;  --border: #3a0f0f;        --border-bright: #ff4444;
-      --glow: 0 0 8px #ff4444; --glow-soft: 0 0 4px #ff4444;
-    }
-
-    :root { --font: 'IBM Plex Mono', 'Courier New', monospace; }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* Defaults (por si acaso) */
+    :root {
+      --bg: #0a0a0a; --bg-glow: #141414; --bg-dark: #050505;
+      --fg: #33ff33; --fg-dim: #1a8c1a; --fg-bright: #7cff7c;
+      --border: #1f3a1f; --border-bright: #33ff33;
+      --glow: 0 0 8px #33ff33; --glow-soft: 0 0 4px #33ff33;
+      --panel: var(--bg-glow);
+      --font: 'IBM Plex Mono', 'Courier New', monospace;
+    }
+
+    /* Panel tintado con el acento (fallback si no hay color-mix) */
+    @supports (background-color: color-mix(in srgb, red, blue)) {
+      :root {
+        --panel: color-mix(in srgb, var(--bg) 92%, var(--fg) 8%);
+      }
+    }
+
+    /* ============================================================
+       MODO (oscuro / claro)
+       ============================================================ */
+    :root[data-mode="dark"] {
+      color-scheme: dark;
+      --scanline-color: rgba(0, 0, 0, 0.15);
+    }
+    :root[data-mode="light"] {
+      color-scheme: light;
+      --scanline-color: rgba(0, 0, 0, 0.025);
+    }
+
+    /* ============================================================
+       FONDOS — combinaciones modo + bg
+       ============================================================ */
+
+    /* ---- MODO OSCURO ---- */
+    :root[data-mode="dark"][data-bg="mono"]   { --bg: #0a0a0a; --bg-glow: #141414; --bg-dark: #050505; }
+    :root[data-mode="dark"][data-bg="blue"]   { --bg: #060a14; --bg-glow: #0a1224; --bg-dark: #030510; }
+    :root[data-mode="dark"][data-bg="green"]  { --bg: #050a05; --bg-glow: #081408; --bg-dark: #020502; }
+    :root[data-mode="dark"][data-bg="purple"] { --bg: #0a0514; --bg-glow: #120a24; --bg-dark: #050210; }
+    :root[data-mode="dark"][data-bg="red"]    { --bg: #140505; --bg-glow: #240a0a; --bg-dark: #100202; }
+
+    /* ---- MODO CLARO ---- */
+    :root[data-mode="light"][data-bg="mono"]   { --bg: #f0f0e8; --bg-glow: #f8f8f0; --bg-dark: #e0e0d8; }
+    :root[data-mode="light"][data-bg="blue"]   { --bg: #e8eef5; --bg-glow: #f0f5fa; --bg-dark: #d8e2ed; }
+    :root[data-mode="light"][data-bg="green"]  { --bg: #e8f0e6; --bg-glow: #f0f8ee; --bg-dark: #d8e4d4; }
+    :root[data-mode="light"][data-bg="purple"] { --bg: #f0eaf5; --bg-glow: #f8f2fa; --bg-dark: #e2d8ed; }
+    :root[data-mode="light"][data-bg="red"]    { --bg: #f5e8e8; --bg-glow: #faeeed; --bg-dark: #edd8d8; }
+
+    /* ============================================================
+       ACENTOS CRT — combinaciones modo + accent
+       ============================================================ */
+
+    /* ---- MODO OSCURO ---- */
+    :root[data-mode="dark"][data-accent="green"]  { --fg:#33ff33; --fg-dim:#1a8c1a; --fg-bright:#7cff7c; --border:#1f3a1f; --border-bright:#33ff33; --glow:0 0 8px #33ff33; --glow-soft:0 0 4px #33ff33; }
+    :root[data-mode="dark"][data-accent="amber"]  { --fg:#ffb000; --fg-dim:#8c6000; --fg-bright:#ffd060; --border:#3a2800; --border-bright:#ffb000; --glow:0 0 8px #ffb000; --glow-soft:0 0 4px #ffb000; }
+    :root[data-mode="dark"][data-accent="cyan"]   { --fg:#00e5ff; --fg-dim:#007a8c; --fg-bright:#66f0ff; --border:#003a4a; --border-bright:#00e5ff; --glow:0 0 8px #00e5ff; --glow-soft:0 0 4px #00e5ff; }
+    :root[data-mode="dark"][data-accent="white"]  { --fg:#e0e0e0; --fg-dim:#7a7a7a; --fg-bright:#ffffff; --border:#2a2a2a; --border-bright:#e0e0e0; --glow:0 0 8px #e0e0e0; --glow-soft:0 0 4px #e0e0e0; }
+    :root[data-mode="dark"][data-accent="purple"] { --fg:#c066ff; --fg-dim:#6a3399; --fg-bright:#d99cff; --border:#3a1a55; --border-bright:#c066ff; --glow:0 0 8px #c066ff; --glow-soft:0 0 4px #c066ff; }
+    :root[data-mode="dark"][data-accent="red"]    { --fg:#ff4444; --fg-dim:#8c1a1a; --fg-bright:#ff8080; --border:#3a0f0f; --border-bright:#ff4444; --glow:0 0 8px #ff4444; --glow-soft:0 0 4px #ff4444; }
+
+    /* ---- MODO CLARO (acentos oscurecidos para contraste) ---- */
+    :root[data-mode="light"][data-accent="green"]  { --fg:#0f7a0f; --fg-dim:#4a9a4a; --fg-bright:#085a08; --border:#a8caa8; --border-bright:#0f7a0f; --glow:0 0 6px rgba(15,122,15,0.4); --glow-soft:0 0 3px rgba(15,122,15,0.2); }
+    :root[data-mode="light"][data-accent="amber"]  { --fg:#9a5c00; --fg-dim:#c08840; --fg-bright:#6e4000; --border:#d8b888; --border-bright:#9a5c00; --glow:0 0 6px rgba(154,92,0,0.4); --glow-soft:0 0 3px rgba(154,92,0,0.2); }
+    :root[data-mode="light"][data-accent="cyan"]   { --fg:#006a80; --fg-dim:#4090a0; --fg-bright:#004858; --border:#9ac8d4; --border-bright:#006a80; --glow:0 0 6px rgba(0,106,128,0.4); --glow-soft:0 0 3px rgba(0,106,128,0.2); }
+    :root[data-mode="light"][data-accent="white"]  { --fg:#1a1a1a; --fg-dim:#5a5a5a; --fg-bright:#000000; --border:#b0b0b0; --border-bright:#1a1a1a; --glow:0 0 6px rgba(0,0,0,0.2); --glow-soft:0 0 3px rgba(0,0,0,0.1); }
+    :root[data-mode="light"][data-accent="purple"] { --fg:#6a1a99; --fg-dim:#9060b0; --fg-bright:#4a0a70; --border:#c8a8d8; --border-bright:#6a1a99; --glow:0 0 6px rgba(106,26,153,0.4); --glow-soft:0 0 3px rgba(106,26,153,0.2); }
+    :root[data-mode="light"][data-accent="red"]    { --fg:#a02020; --fg-dim:#c06060; --fg-bright:#801010; --border:#d8a8a8; --border-bright:#a02020; --glow:0 0 6px rgba(160,32,32,0.4); --glow-soft:0 0 3px rgba(160,32,32,0.2); }
+
+    /* ============================================================
+       BODY
+       ============================================================ */
     body {
       background-color: var(--bg);
       background-image: radial-gradient(circle at 50% 50%, var(--bg-glow) 0%, var(--bg-dark) 100%);
@@ -70,9 +122,9 @@
       min-height: 100vh;
       padding: 24px;
       overflow-x: hidden;
-      transition: background-color 0.4s ease, color 0.4s ease;
       animation: flicker 4s infinite;
     }
+    :root[data-mode="light"] body { animation: none; }
 
     @keyframes flicker {
       0%, 10%, 50%, 100% { opacity: 1; }
@@ -83,17 +135,19 @@
     .scanlines {
       position: fixed; inset: 0; pointer-events: none; z-index: 9999;
       background: repeating-linear-gradient(0deg,
-        rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px,
+        var(--scanline-color) 0px, var(--scanline-color) 1px,
         transparent 1px, transparent 2px);
     }
 
     .app { max-width: 1100px; margin: 0 auto; position: relative; z-index: 1; }
 
-    /* ============ HEADER ============ */
+    /* ============================================================
+       HEADER
+       ============================================================ */
     header {
       border-bottom: 1px solid var(--border);
       padding-bottom: 16px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     .header-top {
       display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
@@ -101,7 +155,6 @@
     .ascii-cat {
       font-size: 12px; line-height: 1.2; color: var(--fg-dim);
       white-space: pre; text-shadow: var(--glow-soft);
-      transition: color 0.4s ease, text-shadow 0.4s ease;
     }
     h1 {
       font-size: 24px; font-weight: 600; letter-spacing: 2px;
@@ -109,34 +162,43 @@
     }
     .tagline { color: var(--fg-dim); font-size: 12px; margin-top: 4px; }
 
-    /* ============ SELECTOR DE TEMAS ============ */
-    .theme-selector {
-      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-      margin-top: 14px; padding-top: 14px;
-      border-top: 1px dashed var(--border);
+    /* ============================================================
+       TABS
+       ============================================================ */
+    .app-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
     }
-    .theme-label {
-      font-size: 11px; color: var(--fg-dim); text-transform: uppercase;
-      letter-spacing: 1px; margin-right: 4px;
+    .app-tab {
+      background: transparent;
+      border: none;
+      color: var(--fg-dim);
+      padding: 12px 20px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 12px;
+      font-family: var(--font);
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.2s, border-color 0.2s;
     }
-    .theme-swatch {
-      width: 22px; height: 22px; padding: 0; border-radius: 0;
-      border: 1px solid var(--border); cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.2s;
-    }
-    .theme-swatch[data-theme="green"]  { background: #33ff33; }
-    .theme-swatch[data-theme="amber"]  { background: #ffb000; }
-    .theme-swatch[data-theme="cyan"]   { background: #00e5ff; }
-    .theme-swatch[data-theme="white"]  { background: #e0e0e0; }
-    .theme-swatch[data-theme="purple"] { background: #c066ff; }
-    .theme-swatch[data-theme="red"]    { background: #ff4444; }
-    .theme-swatch:hover { transform: scale(1.15); box-shadow: var(--glow-soft); }
-    .theme-swatch.active {
-      outline: 2px solid var(--fg); outline-offset: 2px;
-      box-shadow: var(--glow);
+    .app-tab:hover { color: var(--fg); }
+    .app-tab.active {
+      color: var(--fg);
+      border-bottom-color: var(--fg);
+      text-shadow: var(--glow-soft);
     }
 
-    /* ============ CONTROLES ============ */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ============================================================
+       CONTROLES
+       ============================================================ */
     .controls {
       display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
     }
@@ -151,32 +213,36 @@
       font-family: var(--font); font-size: 14px;
       background: transparent; color: var(--fg);
       border: 1px solid var(--border); padding: 10px 12px;
-      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
     }
     input:focus, textarea:focus {
       border-color: var(--border-bright); box-shadow: var(--glow-soft);
     }
-    .search-box input { width: 100%; padding-left: 40px; }
+    .search-box input {
+      width: 100%; padding-left: 40px; background: var(--panel);
+    }
 
     button {
       cursor: pointer; background: var(--panel);
       border-color: var(--border-bright); color: var(--fg);
       font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
-      padding: 10px 18px; transition: background 0.2s, box-shadow 0.2s;
+      padding: 10px 18px;
     }
     button:hover { background: var(--border); box-shadow: var(--glow-soft); }
     button.danger { border-color: #ff5555; color: #ff5555; }
-    button.danger:hover { background: #2a0a0a; box-shadow: 0 0 8px #ff5555; }
+    button.danger:hover { background: rgba(255, 85, 85, 0.1); box-shadow: 0 0 8px #ff5555; }
 
-    /* Botón de instalación PWA */
     .install-btn {
       border-color: var(--fg); background: var(--fg); color: var(--bg);
       display: none;
     }
-    .install-btn:hover { box-shadow: var(--glow); background: var(--fg-bright); }
+    .install-btn:hover { box-shadow: var(--glow); }
     .install-btn.visible { display: inline-block; }
 
-    /* ============ TAGS FILTRO ============ */
+    /* ============================================================
+       TAGS FILTRO
+       ============================================================ */
     .tag-filters {
       display: flex; flex-wrap: wrap; gap: 8px;
       margin-bottom: 24px; align-items: center;
@@ -189,6 +255,8 @@
       background: transparent; border: 1px solid var(--border);
       color: var(--fg-dim); padding: 4px 12px; font-size: 12px;
       cursor: pointer; transition: all 0.2s;
+      font-family: var(--font); font-weight: 400;
+      text-transform: none; letter-spacing: 0;
     }
     .tag-btn:hover { border-color: var(--fg-dim); color: var(--fg); }
     .tag-btn.active {
@@ -198,11 +266,14 @@
     .clear-filter {
       background: transparent; border: none; color: #ff5555;
       font-size: 12px; cursor: pointer; padding: 4px 8px;
-      text-transform: uppercase;
+      text-transform: uppercase; letter-spacing: 1px;
+      box-shadow: none;
     }
-    .clear-filter:hover { text-decoration: underline; }
+    .clear-filter:hover { text-decoration: underline; background: transparent; box-shadow: none; }
 
-    /* ============ NOTAS ============ */
+    /* ============================================================
+       NOTAS
+       ============================================================ */
     .notes-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -210,7 +281,7 @@
     }
     .note-card {
       border: 1px solid var(--border); background: var(--panel);
-      padding: 16px; position: relative;
+      padding: 16px;
       transition: border-color 0.2s, box-shadow 0.2s;
       display: flex; flex-direction: column; gap: 8px;
     }
@@ -229,21 +300,97 @@
       word-break: break-word; flex: 1;
     }
     .note-meta {
-      font-size: 11px; color: var(--fg-dim); opacity: 0.6;
+      font-size: 11px; color: var(--fg-dim); opacity: 0.7;
       border-top: 1px dashed var(--border); padding-top: 8px; margin-top: auto;
       display: flex; flex-direction: column; gap: 2px;
     }
     .note-actions { display: flex; gap: 8px; margin-top: 8px; }
-    .note-actions button { flex: 1; padding: 6px; font-size: 11px; }
+    .note-actions button {
+      flex: 1; padding: 6px; font-size: 11px; font-weight: 600;
+    }
 
     .empty-state {
       text-align: center; color: var(--fg-dim); padding: 48px;
       border: 1px dashed var(--border); font-size: 14px;
     }
 
-    /* ============ MODAL ============ */
+    /* ============================================================
+       PESTAÑA PERSONALIZAR
+       ============================================================ */
+    .customize-section {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .customize-section h3 {
+      font-size: 13px;
+      letter-spacing: 2px;
+      color: var(--fg);
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed var(--border);
+      text-transform: uppercase;
+      text-shadow: var(--glow-soft);
+    }
+    .customize-row { margin-bottom: 22px; }
+    .customize-row:last-child { margin-bottom: 0; }
+    .customize-row > label {
+      display: block;
+      font-size: 11px;
+      color: var(--fg-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .option-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .option {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--fg-dim);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+    .option:hover {
+      border-color: var(--border-bright);
+      color: var(--fg);
+    }
+    .option.active {
+      border-color: var(--fg);
+      color: var(--fg);
+      box-shadow: var(--glow-soft);
+      background: var(--panel);
+    }
+    .option.danger { border-color: #ff5555; color: #ff5555; }
+    .option.danger:hover { background: rgba(255, 85, 85, 0.1); box-shadow: 0 0 8px #ff5555; }
+    .color-chip {
+      width: 16px; height: 16px;
+      background: var(--chip, var(--fg));
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      flex-shrink: 0;
+    }
+    :root[data-mode="light"] .color-chip {
+      border-color: rgba(0, 0, 0, 0.15);
+    }
+
+    /* ============================================================
+       MODAL
+       ============================================================ */
     .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
       display: none; justify-content: center; align-items: center;
       z-index: 1000; padding: 16px;
     }
@@ -264,16 +411,18 @@
       display: block; font-size: 12px; color: var(--fg-dim);
       text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px;
     }
-    .form-group input, .form-group textarea { width: 100%; }
+    .form-group input, .form-group textarea { width: 100%; background: var(--panel); }
     .form-group textarea { resize: vertical; min-height: 120px; }
     .modal-actions {
       display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;
     }
 
-    /* ============ STATUS BAR (offline) ============ */
+    /* ============================================================
+       STATUS BAR
+       ============================================================ */
     .status-bar {
       position: fixed; bottom: 12px; right: 12px;
-      font-size: 11px; padding: 4px 10px;
+      font-size: 11px; padding: 6px 12px;
       border: 1px solid var(--border); background: var(--panel);
       color: var(--fg-dim); text-transform: uppercase; letter-spacing: 1px;
       z-index: 500; opacity: 0; transition: opacity 0.3s;
@@ -282,13 +431,17 @@
     .status-bar.visible { opacity: 1; }
     .status-bar.offline { color: #ff5555; border-color: #ff5555; }
 
-    /* ============ RESPONSIVE ============ */
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
     @media (max-width: 600px) {
       body { padding: 12px; }
       h1 { font-size: 18px; }
       .notes-grid { grid-template-columns: 1fr; }
       .controls { flex-direction: column; }
       .install-btn { width: 100%; }
+      .customize-section { padding: 16px; }
+      .option { flex: 1 1 auto; justify-content: center; }
     }
   </style>
 </head>
@@ -297,6 +450,8 @@
   <div class="scanlines"></div>
 
   <div class="app">
+
+    <!-- ==================== HEADER ==================== -->
     <header>
       <div class="header-top">
         <pre class="ascii-cat">
@@ -310,34 +465,116 @@
         </div>
         <button id="installBtn" class="install-btn">⚡ Instalar</button>
       </div>
-
-      <!-- Selector de temas CRT -->
-      <div class="theme-selector">
-        <span class="theme-label">[ CRT THEME ]</span>
-        <button class="theme-swatch" data-theme="green"  title="Verde fósforo"></button>
-        <button class="theme-swatch" data-theme="amber"  title="Ámbar"></button>
-        <button class="theme-swatch" data-theme="cyan"   title="Cian"></button>
-        <button class="theme-swatch" data-theme="white"  title="Blanco"></button>
-        <button class="theme-swatch" data-theme="purple" title="Púrpura"></button>
-        <button class="theme-swatch" data-theme="red"    title="Rojo"></button>
-      </div>
     </header>
 
-    <div class="controls">
-      <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Buscar por título o tag...">
+    <!-- ==================== TABS ==================== -->
+    <nav class="app-tabs">
+      <button class="app-tab active" data-tab="notes">📝 Notas</button>
+      <button class="app-tab" data-tab="customize">⚙ Personalizar</button>
+    </nav>
+
+    <!-- ==================== TAB: NOTAS ==================== -->
+    <section class="tab-content active" id="tab-notes">
+      <div class="controls">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Buscar por título o tag...">
+        </div>
+        <button id="newNoteBtn">+ Nueva nota</button>
       </div>
-      <button id="newNoteBtn">+ Nueva nota</button>
-    </div>
 
-    <div class="tag-filters" id="tagFilters">
-      <span class="label">[ FILTRAR POR TAG ]</span>
-    </div>
+      <div class="tag-filters" id="tagFilters">
+        <span class="label">[ FILTRAR POR TAG ]</span>
+      </div>
 
-    <div class="notes-grid" id="notesGrid"></div>
+      <div class="notes-grid" id="notesGrid"></div>
+    </section>
+
+    <!-- ==================== TAB: PERSONALIZAR ==================== -->
+    <section class="tab-content" id="tab-customize">
+
+      <!-- APARIENCIA -->
+      <div class="customize-section">
+        <h3>// Apariencia</h3>
+
+        <div class="customize-row">
+          <label>Modo</label>
+          <div class="option-group" id="modeGroup">
+            <button class="option" data-mode="dark">🌙 Oscuro</button>
+            <button class="option" data-mode="light">☀ Claro</button>
+          </div>
+        </div>
+
+        <div class="customize-row">
+          <label>Fondo</label>
+          <div class="option-group" id="bgGroup">
+            <button class="option bg-option" data-bg="mono">
+              <span class="color-chip"></span> Monocromo
+            </button>
+            <button class="option bg-option" data-bg="blue">
+              <span class="color-chip"></span> Azul
+            </button>
+            <button class="option bg-option" data-bg="green">
+              <span class="color-chip"></span> Verde
+            </button>
+            <button class="option bg-option" data-bg="purple">
+              <span class="color-chip"></span> Púrpura
+            </button>
+            <button class="option bg-option" data-bg="red">
+              <span class="color-chip"></span> Rojo
+            </button>
+          </div>
+        </div>
+
+        <div class="customize-row">
+          <label>Color de acento (CRT)</label>
+          <div class="option-group" id="accentGroup">
+            <button class="option accent-option" data-accent="green">
+              <span class="color-chip" style="--chip:#33ff33;"></span> Verde
+            </button>
+            <button class="option accent-option" data-accent="amber">
+              <span class="color-chip" style="--chip:#ffb000;"></span> Ámbar
+            </button>
+            <button class="option accent-option" data-accent="cyan">
+              <span class="color-chip" style="--chip:#00e5ff;"></span> Cian
+            </button>
+            <button class="option accent-option" data-accent="white">
+              <span class="color-chip" style="--chip:#e0e0e0;"></span> Mono
+            </button>
+            <button class="option accent-option" data-accent="purple">
+              <span class="color-chip" style="--chip:#c066ff;"></span> Púrpura
+            </button>
+            <button class="option accent-option" data-accent="red">
+              <span class="color-chip" style="--chip:#ff4444;"></span> Rojo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DATOS -->
+      <div class="customize-section">
+        <h3>// Datos</h3>
+
+        <div class="customize-row">
+          <label>Backup</label>
+          <div class="option-group">
+            <button id="exportBtn" class="option">⬇ Exportar notas</button>
+            <button id="importBtn" class="option">⬆ Importar notas</button>
+            <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
+          </div>
+        </div>
+
+        <div class="customize-row">
+          <label style="color:#ff5555;">Zona peligrosa</label>
+          <div class="option-group">
+            <button id="resetBtn" class="option danger">✕ Borrar todas las notas</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
   </div>
 
-  <!-- Modal -->
+  <!-- ==================== MODAL CREAR/EDITAR ==================== -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
       <h2 id="modalTitle">Nueva nota</h2>
@@ -371,42 +608,46 @@
 
   <script>
     /* ============================================================
-       TEMAS CRT
+       0. CONSTANTES
        ============================================================ */
-    const THEME_KEY = 'meow-theme';
-    const THEME_BG = {
-      green: '#0a0f0a', amber: '#0f0a00', cyan: '#000a0f',
-      white: '#0a0a0a', purple: '#0a0014', red: '#0f0000'
+    const STORAGE_KEY   = 'meow-notes';
+    const STORAGE_MODE  = 'meow-mode';
+    const STORAGE_BG    = 'meow-bg';
+    const STORAGE_ACC   = 'meow-accent';
+
+    // Colores base por modo (para chips y meta theme-color)
+    const BG_COLORS = {
+      dark: {
+        mono:   '#0a0a0a',
+        blue:   '#060a14',
+        green:  '#050a05',
+        purple: '#0a0514',
+        red:    '#140505'
+      },
+      light: {
+        mono:   '#f0f0e8',
+        blue:   '#e8eef5',
+        green:  '#e8f0e6',
+        purple: '#f0eaf5',
+        red:    '#f5e8e8'
+      }
     };
 
-    function applyTheme(theme) {
-      if (!THEME_BG[theme]) theme = 'green';
-      document.documentElement.setAttribute('data-theme', theme);
-      localStorage.setItem(THEME_KEY, theme);
-      const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', THEME_BG[theme]);
-      document.querySelectorAll('.theme-swatch').forEach(sw => {
-        sw.classList.toggle('active', sw.dataset.theme === theme);
-      });
-    }
-
-    // Inicializar tema (antes de cualquier render)
-    applyTheme(localStorage.getItem(THEME_KEY) || 'green');
-
-    document.querySelectorAll('.theme-swatch').forEach(sw => {
-      sw.addEventListener('click', () => applyTheme(sw.dataset.theme));
-    });
-
     /* ============================================================
-       ESTADO Y LOCALSTORAGE
+       1. ESTADO
        ============================================================ */
-    const STORAGE_KEY = 'meow-notes';
     let notes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
     let searchQuery = '';
     let activeTag = null;
 
+    const themeState = {
+      mode:   document.documentElement.getAttribute('data-mode')   || 'dark',
+      bg:     document.documentElement.getAttribute('data-bg')     || 'mono',
+      accent: document.documentElement.getAttribute('data-accent') || 'green'
+    };
+
     /* ============================================================
-       REFERENCIAS DOM
+       2. REFERENCIAS DOM
        ============================================================ */
     const notesGrid      = document.getElementById('notesGrid');
     const tagFilters     = document.getElementById('tagFilters');
@@ -422,12 +663,20 @@
     const cancelBtn      = document.getElementById('cancelBtn');
     const installBtn     = document.getElementById('installBtn');
     const statusBar      = document.getElementById('statusBar');
+    const modeGroup      = document.getElementById('modeGroup');
+    const bgGroup        = document.getElementById('bgGroup');
+    const accentGroup    = document.getElementById('accentGroup');
+    const exportBtn      = document.getElementById('exportBtn');
+    const importBtn      = document.getElementById('importBtn');
+    const importFile     = document.getElementById('importFile');
+    const resetBtn       = document.getElementById('resetBtn');
 
     /* ============================================================
-       UTILIDADES
+       3. UTILIDADES
        ============================================================ */
     function saveNotes() { localStorage.setItem(STORAGE_KEY, JSON.stringify(notes)); }
     function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
     function formatDate(iso) {
       if (!iso) return '—';
       return new Date(iso).toLocaleString('es-ES', {
@@ -435,6 +684,7 @@
         hour: '2-digit', minute: '2-digit'
       });
     }
+
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;
@@ -442,7 +692,78 @@
     }
 
     /* ============================================================
-       RENDER
+       4. APLICAR TEMA
+       ============================================================ */
+    function applyTheme() {
+      const root = document.documentElement;
+      root.setAttribute('data-mode', themeState.mode);
+      root.setAttribute('data-bg', themeState.bg);
+      root.setAttribute('data-accent', themeState.accent);
+
+      localStorage.setItem(STORAGE_MODE, themeState.mode);
+      localStorage.setItem(STORAGE_BG, themeState.bg);
+      localStorage.setItem(STORAGE_ACC, themeState.accent);
+
+      // meta theme-color
+      const color = BG_COLORS[themeState.mode][themeState.bg];
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', color);
+
+      updateThemeUI();
+    }
+
+    function updateThemeUI() {
+      // Marcar activos
+      modeGroup.querySelectorAll('.option').forEach(b =>
+        b.classList.toggle('active', b.dataset.mode === themeState.mode));
+      bgGroup.querySelectorAll('.option').forEach(b =>
+        b.classList.toggle('active', b.dataset.bg === themeState.bg));
+      accentGroup.querySelectorAll('.option').forEach(b =>
+        b.classList.toggle('active', b.dataset.accent === themeState.accent));
+
+      // Chips de fondo (dependen del modo)
+      bgGroup.querySelectorAll('.bg-option').forEach(btn => {
+        const chip = btn.querySelector('.color-chip');
+        if (chip) chip.style.background = BG_COLORS[themeState.mode][btn.dataset.bg];
+      });
+    }
+
+    modeGroup.querySelectorAll('.option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        themeState.mode = btn.dataset.mode;
+        applyTheme();
+        broadcast('theme-updated');
+      });
+    });
+    bgGroup.querySelectorAll('.option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        themeState.bg = btn.dataset.bg;
+        applyTheme();
+        broadcast('theme-updated');
+      });
+    });
+    accentGroup.querySelectorAll('.option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        themeState.accent = btn.dataset.accent;
+        applyTheme();
+        broadcast('theme-updated');
+      });
+    });
+
+    /* ============================================================
+       5. TABS
+       ============================================================ */
+    document.querySelectorAll('.app-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('.app-tab').forEach(t => t.classList.toggle('active', t === tab));
+        document.querySelectorAll('.tab-content').forEach(c =>
+          c.classList.toggle('active', c.id === `tab-${target}`));
+      });
+    });
+
+    /* ============================================================
+       6. RENDER NOTAS
        ============================================================ */
     function renderNotes() {
       let filtered = notes.filter(note => {
@@ -522,7 +843,7 @@
     }
 
     /* ============================================================
-       MODAL
+       7. MODAL
        ============================================================ */
     function openNewModal() {
       modalTitle.textContent = 'Nueva nota';
@@ -545,17 +866,14 @@
     function closeModal() { modalOverlay.classList.remove('open'); }
 
     /* ============================================================
-       CRUD
+       8. CRUD
        ============================================================ */
     function handleFormSubmit(e) {
       e.preventDefault();
       const id = noteIdInput.value;
       const title = noteTitleInput.value.trim();
       const description = noteDescInput.value.trim();
-      if (!title || !description) {
-        alert('El nombre y la descripción son obligatorios.');
-        return;
-      }
+      if (!title || !description) { alert('El nombre y la descripción son obligatorios.'); return; }
       const tags = noteTagsInput.value.trim()
         ? noteTagsInput.value.split(',').map(t => t.trim()).filter(Boolean)
         : [];
@@ -565,14 +883,12 @@
         const i = notes.findIndex(n => n.id === id);
         if (i !== -1) notes[i] = { ...notes[i], title, tags, description, updatedAt: now };
       } else {
-        notes.push({
-          id: generateId(), title, tags, description,
-          createdAt: now, updatedAt: now
-        });
+        notes.push({ id: generateId(), title, tags, description, createdAt: now, updatedAt: now });
       }
       saveNotes();
       renderTagFilters();
       renderNotes();
+      broadcast('notes-updated');
       closeModal();
     }
 
@@ -582,10 +898,113 @@
       saveNotes();
       renderTagFilters();
       renderNotes();
+      broadcast('notes-updated');
     }
 
     /* ============================================================
-       EVENTOS
+       9. EXPORTAR / IMPORTAR / RESET
+       ============================================================ */
+    function exportNotes() {
+      const data = {
+        app: 'Meow Notes App',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        notes: notes
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `meow-notes-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showStatus(`[ EXPORTADAS ${notes.length} NOTAS ]`);
+    }
+
+    function importNotes(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          const imported = Array.isArray(parsed) ? parsed : parsed.notes;
+          if (!Array.isArray(imported)) throw new Error('Formato inválido');
+
+          // Validación mínima
+          const valid = imported.filter(n => n && n.title && n.id);
+          if (valid.length === 0) throw new Error('No hay notas válidas en el archivo');
+
+          const replace = confirm(
+            `Se encontraron ${valid.length} notas.\n\n` +
+            `Aceptar = REEMPLAZAR todas las notas actuales\n` +
+            `Cancelar = FUSIONAR (evitando duplicados)`
+          );
+
+          if (replace) {
+            notes = valid;
+          } else {
+            const existing = new Set(notes.map(n => n.id));
+            valid.forEach(n => { if (!existing.has(n.id)) notes.push(n); });
+          }
+
+          saveNotes();
+          renderTagFilters();
+          renderNotes();
+          broadcast('notes-updated');
+          showStatus(`[ IMPORTADAS ${valid.length} NOTAS ]`);
+        } catch (err) {
+          alert('Error al importar: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetNotes() {
+      if (!confirm('¿Borrar TODAS las notas? Esta acción no se puede deshacer.')) return;
+      notes = [];
+      saveNotes();
+      renderTagFilters();
+      renderNotes();
+      broadcast('notes-updated');
+      showStatus('[ NOTAS BORRADAS ]', true);
+    }
+
+    exportBtn.addEventListener('click', exportNotes);
+    importBtn.addEventListener('click', () => importFile.click());
+    importFile.addEventListener('change', (e) => {
+      if (e.target.files[0]) importNotes(e.target.files[0]);
+      e.target.value = '';
+    });
+    resetBtn.addEventListener('click', resetNotes);
+
+    /* ============================================================
+       10. BROADCAST CHANNEL — sincronización entre pestañas
+       ============================================================ */
+    const bc = ('BroadcastChannel' in window)
+      ? new BroadcastChannel('meow-notes-sync')
+      : null;
+
+    function broadcast(type) {
+      if (bc) bc.postMessage({ type, at: Date.now() });
+    }
+
+    if (bc) {
+      bc.addEventListener('message', (e) => {
+        if (!e.data || !e.data.type) return;
+        if (e.data.type === 'notes-updated') {
+          notes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+          renderTagFilters();
+          renderNotes();
+        } else if (e.data.type === 'theme-updated') {
+          themeState.mode   = localStorage.getItem(STORAGE_MODE)  || 'dark';
+          themeState.bg     = localStorage.getItem(STORAGE_BG)    || 'mono';
+          themeState.accent = localStorage.getItem(STORAGE_ACC)   || 'green';
+          applyTheme();
+        }
+      });
+    }
+
+    /* ============================================================
+       11. EVENTOS GENERALES
        ============================================================ */
     searchInput.addEventListener('input', e => {
       searchQuery = e.target.value.trim();
@@ -602,7 +1021,7 @@
     });
 
     /* ============================================================
-       PWA — INSTALACIÓN
+       12. PWA — INSTALACIÓN
        ============================================================ */
     let deferredPrompt = null;
 
@@ -626,13 +1045,12 @@
       showStatus('[ APP INSTALADA ]');
     });
 
-    // Si ya está instalada, ocultar el botón
     if (window.matchMedia('(display-mode: standalone)').matches) {
       installBtn.classList.remove('visible');
     }
 
     /* ============================================================
-       PWA — SERVICE WORKER
+       13. PWA — SERVICE WORKER
        ============================================================ */
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -643,7 +1061,7 @@
     }
 
     /* ============================================================
-       STATUS BAR (online/offline)
+       14. STATUS BAR
        ============================================================ */
     let statusTimeout;
     function showStatus(msg, isOffline = false, duration = 2500) {
@@ -658,20 +1076,27 @@
     window.addEventListener('online',  () => showStatus('[ ONLINE ]', false, 2000));
 
     /* ============================================================
-       INIT
+       15. INIT
        ============================================================ */
     function init() {
+      // Aplicar tema (por si acaso JS en head no corrió)
+      applyTheme();
+
+      // Nota de bienvenida
       if (notes.length === 0) {
         notes.push({
           id: generateId(),
           title: 'Bienvenido a Meow Notes',
           tags: ['meow', 'bienvenida'],
-          description: 'Esta es una nota de ejemplo. Puedes editarla o eliminarla.\n\nPrueba los temas CRT en la cabecera, instala la app con el botón ⚡ y usa los tags para organizar tus notas.',
+          description: 'Esta es una nota de ejemplo. Puedes editarla o eliminarla.\n\n' +
+            'Prueba la pestaña ⚙ Personalizar para cambiar el modo (claro/oscuro), el fondo ' +
+            'y el color de acento CRT. También puedes exportar/importar tus notas a JSON.',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });
         saveNotes();
       }
+
       renderTagFilters();
       renderNotes();
     }
