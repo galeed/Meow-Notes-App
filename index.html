@@ -1,43 +1,68 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="green">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0f0a">
+  <meta name="description" content="Meow Notes App - Terminal de notas estilo CRT">
   <title>Meow Notes App</title>
 
-  <!-- Fuente monoespaciada tipo terminal -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
     /* ============================================================
-       VARIABLES GLOBALES – ESTILO CRT / TERMINAL
+       TEMAS CRT — cada uno redefine las variables de color
        ============================================================ */
-    :root {
-      --bg: #0a0f0a;                /* fondo casi negro con tinte verde */
-      --panel: #0d140d;
-      --fg: #33ff33;                /* fósforo verde */
-      --fg-dim: #1a8c1a;
-      --fg-bright: #7cff7c;
-      --border: #1f3a1f;
-      --border-bright: #33ff33;
-      --glow: 0 0 8px #33ff33;
-      --glow-soft: 0 0 4px #33ff33;
-      --font: 'IBM Plex Mono', 'Courier New', monospace;
+    :root, [data-theme="green"] {
+      --bg: #0a0f0a;         --bg-glow: #0e1a0e;       --bg-dark: #050805;
+      --panel: #0d140d;      --fg: #33ff33;            --fg-dim: #1a8c1a;
+      --fg-bright: #7cff7c;  --border: #1f3a1f;        --border-bright: #33ff33;
+      --glow: 0 0 8px #33ff33; --glow-soft: 0 0 4px #33ff33;
+    }
+    [data-theme="amber"] {
+      --bg: #0f0a00;         --bg-glow: #1a0e00;       --bg-dark: #080500;
+      --panel: #140d00;      --fg: #ffb000;            --fg-dim: #8c6000;
+      --fg-bright: #ffd060;  --border: #3a2800;        --border-bright: #ffb000;
+      --glow: 0 0 8px #ffb000; --glow-soft: 0 0 4px #ffb000;
+    }
+    [data-theme="cyan"] {
+      --bg: #000a0f;         --bg-glow: #000e1a;       --bg-dark: #000508;
+      --panel: #000d14;      --fg: #00e5ff;            --fg-dim: #007a8c;
+      --fg-bright: #66f0ff;  --border: #003a4a;        --border-bright: #00e5ff;
+      --glow: 0 0 8px #00e5ff; --glow-soft: 0 0 4px #00e5ff;
+    }
+    [data-theme="white"] {
+      --bg: #0a0a0a;         --bg-glow: #141414;       --bg-dark: #050505;
+      --panel: #101010;      --fg: #e0e0e0;            --fg-dim: #7a7a7a;
+      --fg-bright: #ffffff;  --border: #2a2a2a;        --border-bright: #e0e0e0;
+      --glow: 0 0 8px #e0e0e0; --glow-soft: 0 0 4px #e0e0e0;
+    }
+    [data-theme="purple"] {
+      --bg: #0a0014;         --bg-glow: #0e001a;       --bg-dark: #050008;
+      --panel: #0f001a;      --fg: #c066ff;            --fg-dim: #6a3399;
+      --fg-bright: #d99cff;  --border: #3a1a55;        --border-bright: #c066ff;
+      --glow: 0 0 8px #c066ff; --glow-soft: 0 0 4px #c066ff;
+    }
+    [data-theme="red"] {
+      --bg: #0f0000;         --bg-glow: #1a0000;       --bg-dark: #080000;
+      --panel: #140000;      --fg: #ff4444;            --fg-dim: #8c1a1a;
+      --fg-bright: #ff8080;  --border: #3a0f0f;        --border-bright: #ff4444;
+      --glow: 0 0 8px #ff4444; --glow-soft: 0 0 4px #ff4444;
     }
 
-    /* ============================================================
-       RESET Y ESTILOS BASE
-       ============================================================ */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    :root { --font: 'IBM Plex Mono', 'Courier New', monospace; }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: var(--bg);
+      background-color: var(--bg);
+      background-image: radial-gradient(circle at 50% 50%, var(--bg-glow) 0%, var(--bg-dark) 100%);
       color: var(--fg);
       font-family: var(--font);
       font-size: 14px;
@@ -45,391 +70,233 @@
       min-height: 100vh;
       padding: 24px;
       overflow-x: hidden;
-      /* Sutil resplandor radial tipo monitor */
-      background-image: radial-gradient(circle at 50% 50%, #0e1a0e 0%, #050805 100%);
-    }
-
-    /* Capa de líneas de escaneo (scanlines) */
-    .scanlines {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 9999;
-      background: repeating-linear-gradient(
-        0deg,
-        rgba(0, 0, 0, 0.15) 0px,
-        rgba(0, 0, 0, 0.15) 1px,
-        transparent 1px,
-        transparent 2px
-      );
-    }
-
-    /* Ligero parpadeo CRT (muy sutil para no molestar) */
-    @keyframes flicker {
-      0%   { opacity: 1; }
-      5%   { opacity: 0.98; }
-      10%  { opacity: 1; }
-      50%  { opacity: 0.99; }
-      100% { opacity: 1; }
-    }
-
-    body {
+      transition: background-color 0.4s ease, color 0.4s ease;
       animation: flicker 4s infinite;
     }
 
-    /* ============================================================
-       CONTENEDOR PRINCIPAL
-       ============================================================ */
-    .app {
-      max-width: 1100px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
+    @keyframes flicker {
+      0%, 10%, 50%, 100% { opacity: 1; }
+      5% { opacity: 0.98; }
+      30% { opacity: 0.99; }
     }
 
-    /* ============================================================
-       CABECERA
-       ============================================================ */
+    .scanlines {
+      position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+      background: repeating-linear-gradient(0deg,
+        rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px,
+        transparent 1px, transparent 2px);
+    }
+
+    .app { max-width: 1100px; margin: 0 auto; position: relative; z-index: 1; }
+
+    /* ============ HEADER ============ */
     header {
       border-bottom: 1px solid var(--border);
       padding-bottom: 16px;
       margin-bottom: 24px;
     }
-
     .header-top {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
     }
-
     .ascii-cat {
-      font-size: 12px;
-      line-height: 1.2;
-      color: var(--fg-dim);
-      white-space: pre;
-      text-shadow: var(--glow-soft);
+      font-size: 12px; line-height: 1.2; color: var(--fg-dim);
+      white-space: pre; text-shadow: var(--glow-soft);
+      transition: color 0.4s ease, text-shadow 0.4s ease;
     }
-
     h1 {
-      font-size: 24px;
-      font-weight: 600;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      text-shadow: var(--glow);
+      font-size: 24px; font-weight: 600; letter-spacing: 2px;
+      text-transform: uppercase; text-shadow: var(--glow);
+    }
+    .tagline { color: var(--fg-dim); font-size: 12px; margin-top: 4px; }
+
+    /* ============ SELECTOR DE TEMAS ============ */
+    .theme-selector {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+      margin-top: 14px; padding-top: 14px;
+      border-top: 1px dashed var(--border);
+    }
+    .theme-label {
+      font-size: 11px; color: var(--fg-dim); text-transform: uppercase;
+      letter-spacing: 1px; margin-right: 4px;
+    }
+    .theme-swatch {
+      width: 22px; height: 22px; padding: 0; border-radius: 0;
+      border: 1px solid var(--border); cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+    }
+    .theme-swatch[data-theme="green"]  { background: #33ff33; }
+    .theme-swatch[data-theme="amber"]  { background: #ffb000; }
+    .theme-swatch[data-theme="cyan"]   { background: #00e5ff; }
+    .theme-swatch[data-theme="white"]  { background: #e0e0e0; }
+    .theme-swatch[data-theme="purple"] { background: #c066ff; }
+    .theme-swatch[data-theme="red"]    { background: #ff4444; }
+    .theme-swatch:hover { transform: scale(1.15); box-shadow: var(--glow-soft); }
+    .theme-swatch.active {
+      outline: 2px solid var(--fg); outline-offset: 2px;
+      box-shadow: var(--glow);
     }
 
-    .tagline {
-      color: var(--fg-dim);
-      font-size: 12px;
-      margin-top: 4px;
-    }
-
-    /* ============================================================
-       BARRA DE CONTROLES (BÚSQUEDA + NUEVA NOTA)
-       ============================================================ */
+    /* ============ CONTROLES ============ */
     .controls {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
+      display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
     }
-
-    .search-box {
-      flex: 1;
-      min-width: 200px;
-      position: relative;
-    }
-
+    .search-box { flex: 1; min-width: 200px; position: relative; }
     .search-box::before {
-      content: '>_';
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--fg-dim);
-      font-weight: 600;
-      pointer-events: none;
+      content: '>_'; position: absolute; left: 12px; top: 50%;
+      transform: translateY(-50%); color: var(--fg-dim);
+      font-weight: 600; pointer-events: none;
     }
 
     input, textarea, button {
-      font-family: var(--font);
-      font-size: 14px;
-      background: transparent;
-      color: var(--fg);
-      border: 1px solid var(--border);
-      padding: 10px 12px;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: var(--font); font-size: 14px;
+      background: transparent; color: var(--fg);
+      border: 1px solid var(--border); padding: 10px 12px;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
     }
-
     input:focus, textarea:focus {
-      border-color: var(--border-bright);
-      box-shadow: var(--glow-soft);
+      border-color: var(--border-bright); box-shadow: var(--glow-soft);
     }
-
-    .search-box input {
-      width: 100%;
-      padding-left: 40px;
-    }
+    .search-box input { width: 100%; padding-left: 40px; }
 
     button {
-      cursor: pointer;
-      background: var(--panel);
-      border-color: var(--border-bright);
-      color: var(--fg);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 10px 18px;
-      transition: background 0.2s, box-shadow 0.2s;
+      cursor: pointer; background: var(--panel);
+      border-color: var(--border-bright); color: var(--fg);
+      font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+      padding: 10px 18px; transition: background 0.2s, box-shadow 0.2s;
     }
+    button:hover { background: var(--border); box-shadow: var(--glow-soft); }
+    button.danger { border-color: #ff5555; color: #ff5555; }
+    button.danger:hover { background: #2a0a0a; box-shadow: 0 0 8px #ff5555; }
 
-    button:hover {
-      background: var(--border);
-      box-shadow: var(--glow-soft);
+    /* Botón de instalación PWA */
+    .install-btn {
+      border-color: var(--fg); background: var(--fg); color: var(--bg);
+      display: none;
     }
+    .install-btn:hover { box-shadow: var(--glow); background: var(--fg-bright); }
+    .install-btn.visible { display: inline-block; }
 
-    button.danger {
-      border-color: #ff5555;
-      color: #ff5555;
-    }
-
-    button.danger:hover {
-      background: #2a0a0a;
-      box-shadow: 0 0 8px #ff5555;
-    }
-
-    /* ============================================================
-       FILTRO POR TAGS
-       ============================================================ */
+    /* ============ TAGS FILTRO ============ */
     .tag-filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 24px;
-      align-items: center;
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 24px; align-items: center;
     }
-
     .tag-filters .label {
-      color: var(--fg-dim);
-      font-size: 12px;
-      margin-right: 4px;
-      text-transform: uppercase;
+      color: var(--fg-dim); font-size: 12px;
+      margin-right: 4px; text-transform: uppercase;
     }
-
     .tag-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--fg-dim);
-      padding: 4px 12px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--fg-dim); padding: 4px 12px; font-size: 12px;
+      cursor: pointer; transition: all 0.2s;
     }
-
-    .tag-btn:hover {
-      border-color: var(--fg-dim);
-      color: var(--fg);
-    }
-
+    .tag-btn:hover { border-color: var(--fg-dim); color: var(--fg); }
     .tag-btn.active {
-      background: var(--fg);
-      color: var(--bg);
-      border-color: var(--fg);
-      box-shadow: var(--glow-soft);
+      background: var(--fg); color: var(--bg);
+      border-color: var(--fg); box-shadow: var(--glow-soft);
     }
-
     .clear-filter {
-      background: transparent;
-      border: none;
-      color: #ff5555;
-      font-size: 12px;
-      cursor: pointer;
-      padding: 4px 8px;
+      background: transparent; border: none; color: #ff5555;
+      font-size: 12px; cursor: pointer; padding: 4px 8px;
       text-transform: uppercase;
     }
+    .clear-filter:hover { text-decoration: underline; }
 
-    .clear-filter:hover {
-      text-decoration: underline;
-    }
-
-    /* ============================================================
-       LISTA DE NOTAS
-       ============================================================ */
+    /* ============ NOTAS ============ */
     .notes-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 16px;
     }
-
     .note-card {
-      border: 1px solid var(--border);
-      background: var(--panel);
-      padding: 16px;
-      position: relative;
+      border: 1px solid var(--border); background: var(--panel);
+      padding: 16px; position: relative;
       transition: border-color 0.2s, box-shadow 0.2s;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      display: flex; flex-direction: column; gap: 8px;
     }
-
-    .note-card:hover {
-      border-color: var(--border-bright);
-      box-shadow: var(--glow-soft);
-    }
-
+    .note-card:hover { border-color: var(--border-bright); box-shadow: var(--glow-soft); }
     .note-card h2 {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--fg-bright);
-      word-break: break-word;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      font-size: 16px; font-weight: 600; color: var(--fg-bright);
+      word-break: break-word; text-transform: uppercase; letter-spacing: 1px;
     }
-
-    .note-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
+    .note-tags { display: flex; flex-wrap: wrap; gap: 6px; }
     .note-tag {
-      font-size: 11px;
-      color: var(--fg-dim);
-      border: 1px solid var(--border);
-      padding: 2px 8px;
-      white-space: nowrap;
+      font-size: 11px; color: var(--fg-dim);
+      border: 1px solid var(--border); padding: 2px 8px; white-space: nowrap;
     }
-
     .note-desc {
-      color: var(--fg-dim);
-      font-size: 13px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      flex: 1;
+      color: var(--fg-dim); font-size: 13px; white-space: pre-wrap;
+      word-break: break-word; flex: 1;
     }
-
     .note-meta {
-      font-size: 11px;
-      color: #0f5f0f;
-      border-top: 1px dashed var(--border);
-      padding-top: 8px;
-      margin-top: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+      font-size: 11px; color: var(--fg-dim); opacity: 0.6;
+      border-top: 1px dashed var(--border); padding-top: 8px; margin-top: auto;
+      display: flex; flex-direction: column; gap: 2px;
     }
+    .note-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .note-actions button { flex: 1; padding: 6px; font-size: 11px; }
 
-    .note-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .note-actions button {
-      flex: 1;
-      padding: 6px;
-      font-size: 11px;
-    }
-
-    /* Mensaje cuando no hay notas */
     .empty-state {
-      text-align: center;
-      color: var(--fg-dim);
-      padding: 48px;
-      border: 1px dashed var(--border);
-      font-size: 14px;
+      text-align: center; color: var(--fg-dim); padding: 48px;
+      border: 1px dashed var(--border); font-size: 14px;
     }
 
-    /* ============================================================
-       MODAL (FORMULARIO CREAR / EDITAR)
-       ============================================================ */
+    /* ============ MODAL ============ */
     .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.85);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      padding: 16px;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      display: none; justify-content: center; align-items: center;
+      z-index: 1000; padding: 16px;
     }
-
-    .modal-overlay.open {
-      display: flex;
-    }
-
+    .modal-overlay.open { display: flex; }
     .modal {
-      background: var(--bg);
-      border: 1px solid var(--border-bright);
-      box-shadow: 0 0 24px #33ff3344;
-      padding: 24px;
-      width: 100%;
-      max-width: 520px;
-      max-height: 90vh;
-      overflow-y: auto;
+      background: var(--bg); border: 1px solid var(--border-bright);
+      box-shadow: 0 0 24px var(--border-bright);
+      padding: 24px; width: 100%; max-width: 520px;
+      max-height: 90vh; overflow-y: auto;
     }
-
     .modal h2 {
-      font-size: 18px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      margin-bottom: 20px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
-      text-shadow: var(--glow-soft);
+      font-size: 18px; text-transform: uppercase; letter-spacing: 2px;
+      margin-bottom: 20px; border-bottom: 1px solid var(--border);
+      padding-bottom: 8px; text-shadow: var(--glow-soft);
     }
-
-    .form-group {
-      margin-bottom: 16px;
-    }
-
+    .form-group { margin-bottom: 16px; }
     .form-group label {
-      display: block;
-      font-size: 12px;
-      color: var(--fg-dim);
-      text-transform: uppercase;
-      margin-bottom: 6px;
-      letter-spacing: 1px;
+      display: block; font-size: 12px; color: var(--fg-dim);
+      text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px;
     }
-
-    .form-group input,
-    .form-group textarea {
-      width: 100%;
-    }
-
-    .form-group textarea {
-      resize: vertical;
-      min-height: 120px;
-    }
-
+    .form-group input, .form-group textarea { width: 100%; }
+    .form-group textarea { resize: vertical; min-height: 120px; }
     .modal-actions {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      margin-top: 20px;
+      display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;
     }
 
-    /* ============================================================
-       RESPONSIVE
-       ============================================================ */
+    /* ============ STATUS BAR (offline) ============ */
+    .status-bar {
+      position: fixed; bottom: 12px; right: 12px;
+      font-size: 11px; padding: 4px 10px;
+      border: 1px solid var(--border); background: var(--panel);
+      color: var(--fg-dim); text-transform: uppercase; letter-spacing: 1px;
+      z-index: 500; opacity: 0; transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .status-bar.visible { opacity: 1; }
+    .status-bar.offline { color: #ff5555; border-color: #ff5555; }
+
+    /* ============ RESPONSIVE ============ */
     @media (max-width: 600px) {
       body { padding: 12px; }
       h1 { font-size: 18px; }
       .notes-grid { grid-template-columns: 1fr; }
       .controls { flex-direction: column; }
+      .install-btn { width: 100%; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Capa de scanlines CRT -->
   <div class="scanlines"></div>
 
   <div class="app">
-
-    <!-- ==================== CABECERA ==================== -->
     <header>
       <div class="header-top">
         <pre class="ascii-cat">
@@ -437,14 +304,25 @@
 ( o.o )
  > ^ <
         </pre>
-        <div>
+        <div style="flex:1;">
           <h1>Meow Notes App</h1>
           <div class="tagline">// terminal de notas &gt; guarda, etiqueta y encuentra</div>
         </div>
+        <button id="installBtn" class="install-btn">⚡ Instalar</button>
+      </div>
+
+      <!-- Selector de temas CRT -->
+      <div class="theme-selector">
+        <span class="theme-label">[ CRT THEME ]</span>
+        <button class="theme-swatch" data-theme="green"  title="Verde fósforo"></button>
+        <button class="theme-swatch" data-theme="amber"  title="Ámbar"></button>
+        <button class="theme-swatch" data-theme="cyan"   title="Cian"></button>
+        <button class="theme-swatch" data-theme="white"  title="Blanco"></button>
+        <button class="theme-swatch" data-theme="purple" title="Púrpura"></button>
+        <button class="theme-swatch" data-theme="red"    title="Rojo"></button>
       </div>
     </header>
 
-    <!-- ==================== CONTROLES ==================== -->
     <div class="controls">
       <div class="search-box">
         <input type="text" id="searchInput" placeholder="Buscar por título o tag...">
@@ -452,20 +330,14 @@
       <button id="newNoteBtn">+ Nueva nota</button>
     </div>
 
-    <!-- ==================== FILTRO POR TAGS ==================== -->
     <div class="tag-filters" id="tagFilters">
       <span class="label">[ FILTRAR POR TAG ]</span>
-      <!-- Los botones se generan dinámicamente -->
     </div>
 
-    <!-- ==================== LISTA DE NOTAS ==================== -->
-    <div class="notes-grid" id="notesGrid">
-      <!-- Las tarjetas se generan dinámicamente -->
-    </div>
-
+    <div class="notes-grid" id="notesGrid"></div>
   </div>
 
-  <!-- ==================== MODAL CREAR / EDITAR ==================== -->
+  <!-- Modal -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
       <h2 id="modalTitle">Nueva nota</h2>
@@ -495,63 +367,74 @@
     </div>
   </div>
 
+  <div class="status-bar" id="statusBar"></div>
+
   <script>
     /* ============================================================
-       1. ESTADO Y LOCALSTORAGE
+       TEMAS CRT
        ============================================================ */
-    const STORAGE_KEY = 'meow-notes';
+    const THEME_KEY = 'meow-theme';
+    const THEME_BG = {
+      green: '#0a0f0a', amber: '#0f0a00', cyan: '#000a0f',
+      white: '#0a0a0a', purple: '#0a0014', red: '#0f0000'
+    };
 
-    // Cargar notas desde localStorage (o array vacío)
-    let notes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-
-    // Filtros activos
-    let searchQuery = '';
-    let activeTag = null; // null = sin filtro por tag
-
-    /* ============================================================
-       2. REFERENCIAS AL DOM
-       ============================================================ */
-    const notesGrid = document.getElementById('notesGrid');
-    const tagFilters = document.getElementById('tagFilters');
-    const searchInput = document.getElementById('searchInput');
-    const newNoteBtn = document.getElementById('newNoteBtn');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const modalTitle = document.getElementById('modalTitle');
-    const noteForm = document.getElementById('noteForm');
-    const noteIdInput = document.getElementById('noteId');
-    const noteTitleInput = document.getElementById('noteTitle');
-    const noteTagsInput = document.getElementById('noteTags');
-    const noteDescInput = document.getElementById('noteDesc');
-    const cancelBtn = document.getElementById('cancelBtn');
-    const saveBtn = document.getElementById('saveBtn');
-
-    /* ============================================================
-       3. UTILIDADES
-       ============================================================ */
-    // Guardar en localStorage
-    function saveNotes() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-    }
-
-    // Generar ID único
-    function generateId() {
-      return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-    }
-
-    // Formatear fecha ISO a texto legible
-    function formatDate(isoString) {
-      if (!isoString) return '—';
-      const date = new Date(isoString);
-      return date.toLocaleString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+    function applyTheme(theme) {
+      if (!THEME_BG[theme]) theme = 'green';
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem(THEME_KEY, theme);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', THEME_BG[theme]);
+      document.querySelectorAll('.theme-swatch').forEach(sw => {
+        sw.classList.toggle('active', sw.dataset.theme === theme);
       });
     }
 
-    // Escapar HTML para evitar inyecciones
+    // Inicializar tema (antes de cualquier render)
+    applyTheme(localStorage.getItem(THEME_KEY) || 'green');
+
+    document.querySelectorAll('.theme-swatch').forEach(sw => {
+      sw.addEventListener('click', () => applyTheme(sw.dataset.theme));
+    });
+
+    /* ============================================================
+       ESTADO Y LOCALSTORAGE
+       ============================================================ */
+    const STORAGE_KEY = 'meow-notes';
+    let notes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let searchQuery = '';
+    let activeTag = null;
+
+    /* ============================================================
+       REFERENCIAS DOM
+       ============================================================ */
+    const notesGrid      = document.getElementById('notesGrid');
+    const tagFilters     = document.getElementById('tagFilters');
+    const searchInput    = document.getElementById('searchInput');
+    const newNoteBtn     = document.getElementById('newNoteBtn');
+    const modalOverlay   = document.getElementById('modalOverlay');
+    const modalTitle     = document.getElementById('modalTitle');
+    const noteForm       = document.getElementById('noteForm');
+    const noteIdInput    = document.getElementById('noteId');
+    const noteTitleInput = document.getElementById('noteTitle');
+    const noteTagsInput  = document.getElementById('noteTags');
+    const noteDescInput  = document.getElementById('noteDesc');
+    const cancelBtn      = document.getElementById('cancelBtn');
+    const installBtn     = document.getElementById('installBtn');
+    const statusBar      = document.getElementById('statusBar');
+
+    /* ============================================================
+       UTILIDADES
+       ============================================================ */
+    function saveNotes() { localStorage.setItem(STORAGE_KEY, JSON.stringify(notes)); }
+    function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+    function formatDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleString('es-ES', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;
@@ -559,30 +442,22 @@
     }
 
     /* ============================================================
-       4. RENDERIZADO
+       RENDER
        ============================================================ */
-    // Renderizar la lista de notas (aplicando filtros de búsqueda y tag)
     function renderNotes() {
-      // 1. Filtrar
       let filtered = notes.filter(note => {
-        // Filtro por tag activo
         if (activeTag && !note.tags.includes(activeTag)) return false;
-
-        // Filtro por búsqueda (título o tags)
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
           const matchTitle = note.title.toLowerCase().includes(q);
-          const matchTags = note.tags.some(tag => tag.toLowerCase().includes(q));
+          const matchTags  = note.tags.some(t => t.toLowerCase().includes(q));
           if (!matchTitle && !matchTags) return false;
         }
-
         return true;
       });
 
-      // 2. Ordenar por fecha de modificación (más reciente primero)
       filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
-      // 3. Renderizar
       if (filtered.length === 0) {
         notesGrid.innerHTML = `<div class="empty-state">[ SIN NOTAS ] — No hay resultados. Crea una nueva nota o cambia los filtros.</div>`;
         return;
@@ -591,18 +466,14 @@
       notesGrid.innerHTML = filtered.map(note => `
         <div class="note-card">
           <h2>${escapeHtml(note.title)}</h2>
-
           <div class="note-tags">
-            ${note.tags.map(tag => `<span class="note-tag">#${escapeHtml(tag)}</span>`).join('')}
+            ${note.tags.map(t => `<span class="note-tag">#${escapeHtml(t)}</span>`).join('')}
           </div>
-
           <div class="note-desc">${escapeHtml(note.description)}</div>
-
           <div class="note-meta">
             <span>[ CREADA ] ${formatDate(note.createdAt)}</span>
             <span>[ MODIFICADA ] ${formatDate(note.updatedAt)}</span>
           </div>
-
           <div class="note-actions">
             <button class="edit-btn" data-id="${note.id}">Editar</button>
             <button class="delete-btn danger" data-id="${note.id}">Eliminar</button>
@@ -610,22 +481,14 @@
         </div>
       `).join('');
 
-      // Asignar eventos a los botones de editar/eliminar
-      document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', () => openEditModal(btn.dataset.id));
-      });
-
-      document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', () => deleteNote(btn.dataset.id));
-      });
+      document.querySelectorAll('.edit-btn').forEach(btn =>
+        btn.addEventListener('click', () => openEditModal(btn.dataset.id)));
+      document.querySelectorAll('.delete-btn').forEach(btn =>
+        btn.addEventListener('click', () => deleteNote(btn.dataset.id)));
     }
 
-    // Renderizar los botones de filtro por tags
     function renderTagFilters() {
-      // Obtener todos los tags únicos
-      const allTags = [...new Set(notes.flatMap(note => note.tags))].sort();
-
-      // Limpiar el contenedor (dejando la etiqueta "[ FILTRAR POR TAG ]")
+      const allTags = [...new Set(notes.flatMap(n => n.tags))].sort();
       tagFilters.innerHTML = '<span class="label">[ FILTRAR POR TAG ]</span>';
 
       if (allTags.length === 0) {
@@ -633,13 +496,11 @@
         return;
       }
 
-      // Crear un botón por tag
       allTags.forEach(tag => {
         const btn = document.createElement('button');
         btn.className = 'tag-btn' + (activeTag === tag ? ' active' : '');
         btn.textContent = `#${tag}`;
         btn.addEventListener('click', () => {
-          // Si ya está activo, quitamos el filtro
           activeTag = (activeTag === tag) ? null : tag;
           renderTagFilters();
           renderNotes();
@@ -647,7 +508,6 @@
         tagFilters.appendChild(btn);
       });
 
-      // Botón para limpiar filtro si hay uno activo
       if (activeTag) {
         const clearBtn = document.createElement('button');
         clearBtn.className = 'clear-filter';
@@ -662,7 +522,7 @@
     }
 
     /* ============================================================
-       5. MODAL (CREAR / EDITAR)
+       MODAL
        ============================================================ */
     function openNewModal() {
       modalTitle.textContent = 'Nueva nota';
@@ -671,82 +531,51 @@
       modalOverlay.classList.add('open');
       noteTitleInput.focus();
     }
-
     function openEditModal(id) {
       const note = notes.find(n => n.id === id);
       if (!note) return;
-
       modalTitle.textContent = 'Editar nota';
       noteIdInput.value = note.id;
       noteTitleInput.value = note.title;
       noteTagsInput.value = note.tags.join(', ');
       noteDescInput.value = note.description;
-
       modalOverlay.classList.add('open');
       noteTitleInput.focus();
     }
-
-    function closeModal() {
-      modalOverlay.classList.remove('open');
-    }
+    function closeModal() { modalOverlay.classList.remove('open'); }
 
     /* ============================================================
-       6. CRUD DE NOTAS
+       CRUD
        ============================================================ */
-    // Guardar (crear o actualizar)
     function handleFormSubmit(e) {
       e.preventDefault();
-
       const id = noteIdInput.value;
       const title = noteTitleInput.value.trim();
-      const tagsRaw = noteTagsInput.value.trim();
       const description = noteDescInput.value.trim();
-
-      // Validación básica
       if (!title || !description) {
         alert('El nombre y la descripción son obligatorios.');
         return;
       }
-
-      // Procesar tags: separar por coma, limpiar espacios y eliminar vacíos
-      const tags = tagsRaw
-        ? tagsRaw.split(',').map(t => t.trim()).filter(t => t !== '')
+      const tags = noteTagsInput.value.trim()
+        ? noteTagsInput.value.split(',').map(t => t.trim()).filter(Boolean)
         : [];
-
       const now = new Date().toISOString();
 
       if (id) {
-        // EDITAR nota existente
-        const index = notes.findIndex(n => n.id === id);
-        if (index !== -1) {
-          notes[index] = {
-            ...notes[index],
-            title,
-            tags,
-            description,
-            updatedAt: now
-          };
-        }
+        const i = notes.findIndex(n => n.id === id);
+        if (i !== -1) notes[i] = { ...notes[i], title, tags, description, updatedAt: now };
       } else {
-        // CREAR nueva nota
-        const newNote = {
-          id: generateId(),
-          title,
-          tags,
-          description,
-          createdAt: now,
-          updatedAt: now
-        };
-        notes.push(newNote);
+        notes.push({
+          id: generateId(), title, tags, description,
+          createdAt: now, updatedAt: now
+        });
       }
-
       saveNotes();
       renderTagFilters();
       renderNotes();
       closeModal();
     }
 
-    // Eliminar nota
     function deleteNote(id) {
       if (!confirm('¿Eliminar esta nota permanentemente?')) return;
       notes = notes.filter(n => n.id !== id);
@@ -756,54 +585,96 @@
     }
 
     /* ============================================================
-       7. EVENTOS
+       EVENTOS
        ============================================================ */
-    // Búsqueda en tiempo real
-    searchInput.addEventListener('input', (e) => {
+    searchInput.addEventListener('input', e => {
       searchQuery = e.target.value.trim();
       renderNotes();
     });
-
-    // Botón "Nueva nota"
     newNoteBtn.addEventListener('click', openNewModal);
-
-    // Cancelar modal
     cancelBtn.addEventListener('click', closeModal);
-
-    // Cerrar modal al hacer clic fuera
-    modalOverlay.addEventListener('click', (e) => {
+    modalOverlay.addEventListener('click', e => {
       if (e.target === modalOverlay) closeModal();
     });
-
-    // Envío del formulario
     noteForm.addEventListener('submit', handleFormSubmit);
-
-    // Cerrar modal con Escape
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', e => {
       if (e.key === 'Escape') closeModal();
     });
 
     /* ============================================================
-       8. INICIALIZACIÓN
+       PWA — INSTALACIÓN
+       ============================================================ */
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.classList.add('visible');
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installBtn.classList.remove('visible');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installBtn.classList.remove('visible');
+      deferredPrompt = null;
+      showStatus('[ APP INSTALADA ]');
+    });
+
+    // Si ya está instalada, ocultar el botón
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      installBtn.classList.remove('visible');
+    }
+
+    /* ============================================================
+       PWA — SERVICE WORKER
+       ============================================================ */
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('[SW] registrado:', reg.scope))
+          .catch(err => console.log('[SW] error:', err));
+      });
+    }
+
+    /* ============================================================
+       STATUS BAR (online/offline)
+       ============================================================ */
+    let statusTimeout;
+    function showStatus(msg, isOffline = false, duration = 2500) {
+      statusBar.textContent = msg;
+      statusBar.classList.toggle('offline', isOffline);
+      statusBar.classList.add('visible');
+      clearTimeout(statusTimeout);
+      statusTimeout = setTimeout(() => statusBar.classList.remove('visible'), duration);
+    }
+
+    window.addEventListener('offline', () => showStatus('[ OFFLINE MODE ]', true, 4000));
+    window.addEventListener('online',  () => showStatus('[ ONLINE ]', false, 2000));
+
+    /* ============================================================
+       INIT
        ============================================================ */
     function init() {
-      // Si no hay notas, crear una nota de bienvenida (opcional)
       if (notes.length === 0) {
         notes.push({
           id: generateId(),
           title: 'Bienvenido a Meow Notes',
           tags: ['meow', 'bienvenida'],
-          description: 'Esta es una nota de ejemplo. Puedes editarla o eliminarla.\n\nUsa los tags para organizar tus notas y la barra de búsqueda para encontrarlas rápido.',
+          description: 'Esta es una nota de ejemplo. Puedes editarla o eliminarla.\n\nPrueba los temas CRT en la cabecera, instala la app con el botón ⚡ y usa los tags para organizar tus notas.',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });
         saveNotes();
       }
-
       renderTagFilters();
       renderNotes();
     }
-
     init();
   </script>
 </body>
