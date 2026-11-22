@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meow Notes App</title>
+
+  <!-- Fuente monoespaciada tipo terminal -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       VARIABLES GLOBALES – ESTILO CRT / TERMINAL
+       ============================================================ */
+    :root {
+      --bg: #0a0f0a;                /* fondo casi negro con tinte verde */
+      --panel: #0d140d;
+      --fg: #33ff33;                /* fósforo verde */
+      --fg-dim: #1a8c1a;
+      --fg-bright: #7cff7c;
+      --border: #1f3a1f;
+      --border-bright: #33ff33;
+      --glow: 0 0 8px #33ff33;
+      --glow-soft: 0 0 4px #33ff33;
+      --font: 'IBM Plex Mono', 'Courier New', monospace;
+    }
+
+    /* ============================================================
+       RESET Y ESTILOS BASE
+       ============================================================ */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 24px;
+      overflow-x: hidden;
+      /* Sutil resplandor radial tipo monitor */
+      background-image: radial-gradient(circle at 50% 50%, #0e1a0e 0%, #050805 100%);
+    }
+
+    /* Capa de líneas de escaneo (scanlines) */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15) 0px,
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+    }
+
+    /* Ligero parpadeo CRT (muy sutil para no molestar) */
+    @keyframes flicker {
+      0%   { opacity: 1; }
+      5%   { opacity: 0.98; }
+      10%  { opacity: 1; }
+      50%  { opacity: 0.99; }
+      100% { opacity: 1; }
+    }
+
+    body {
+      animation: flicker 4s infinite;
+    }
+
+    /* ============================================================
+       CONTENEDOR PRINCIPAL
+       ============================================================ */
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ============================================================
+       CABECERA
+       ============================================================ */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .ascii-cat {
+      font-size: 12px;
+      line-height: 1.2;
+      color: var(--fg-dim);
+      white-space: pre;
+      text-shadow: var(--glow-soft);
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: var(--glow);
+    }
+
+    .tagline {
+      color: var(--fg-dim);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    /* ============================================================
+       BARRA DE CONTROLES (BÚSQUEDA + NUEVA NOTA)
+       ============================================================ */
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+
+    .search-box::before {
+      content: '>_';
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--fg-dim);
+      font-weight: 600;
+      pointer-events: none;
+    }
+
+    input, textarea, button {
+      font-family: var(--font);
+      font-size: 14px;
+      background: transparent;
+      color: var(--fg);
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--border-bright);
+      box-shadow: var(--glow-soft);
+    }
+
+    .search-box input {
+      width: 100%;
+      padding-left: 40px;
+    }
+
+    button {
+      cursor: pointer;
+      background: var(--panel);
+      border-color: var(--border-bright);
+      color: var(--fg);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 10px 18px;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      background: var(--border);
+      box-shadow: var(--glow-soft);
+    }
+
+    button.danger {
+      border-color: #ff5555;
+      color: #ff5555;
+    }
+
+    button.danger:hover {
+      background: #2a0a0a;
+      box-shadow: 0 0 8px #ff5555;
+    }
+
+    /* ============================================================
+       FILTRO POR TAGS
+       ============================================================ */
+    .tag-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+      align-items: center;
+    }
+
+    .tag-filters .label {
+      color: var(--fg-dim);
+      font-size: 12px;
+      margin-right: 4px;
+      text-transform: uppercase;
+    }
+
+    .tag-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--fg-dim);
+      padding: 4px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tag-btn:hover {
+      border-color: var(--fg-dim);
+      color: var(--fg);
+    }
+
+    .tag-btn.active {
+      background: var(--fg);
+      color: var(--bg);
+      border-color: var(--fg);
+      box-shadow: var(--glow-soft);
+    }
+
+    .clear-filter {
+      background: transparent;
+      border: none;
+      color: #ff5555;
+      font-size: 12px;
+      cursor: pointer;
+      padding: 4px 8px;
+      text-transform: uppercase;
+    }
+
+    .clear-filter:hover {
+      text-decoration: underline;
+    }
+
+    /* ============================================================
+       LISTA DE NOTAS
+       ============================================================ */
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .note-card {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      padding: 16px;
+      position: relative;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .note-card:hover {
+      border-color: var(--border-bright);
+      box-shadow: var(--glow-soft);
+    }
+
+    .note-card h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--fg-bright);
+      word-break: break-word;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .note-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .note-tag {
+      font-size: 11px;
+      color: var(--fg-dim);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+
+    .note-desc {
+      color: var(--fg-dim);
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      flex: 1;
+    }
+
+    .note-meta {
+      font-size: 11px;
+      color: #0f5f0f;
+      border-top: 1px dashed var(--border);
+      padding-top: 8px;
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .note-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .note-actions button {
+      flex: 1;
+      padding: 6px;
+      font-size: 11px;
+    }
+
+    /* Mensaje cuando no hay notas */
+    .empty-state {
+      text-align: center;
+      color: var(--fg-dim);
+      padding: 48px;
+      border: 1px dashed var(--border);
+      font-size: 14px;
+    }
+
+    /* ============================================================
+       MODAL (FORMULARIO CREAR / EDITAR)
+       ============================================================ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg);
+      border: 1px solid var(--border-bright);
+      box-shadow: 0 0 24px #33ff3344;
+      padding: 24px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal h2 {
+      font-size: 18px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      text-shadow: var(--glow-soft);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--fg-dim);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      h1 { font-size: 18px; }
+      .notes-grid { grid-template-columns: 1fr; }
+      .controls { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Capa de scanlines CRT -->
+  <div class="scanlines"></div>
+
+  <div class="app">
+
+    <!-- ==================== CABECERA ==================== -->
+    <header>
+      <div class="header-top">
+        <pre class="ascii-cat">
+ /\_/\
+( o.o )
+ > ^ <
+        </pre>
+        <div>
+          <h1>Meow Notes App</h1>
+          <div class="tagline">// terminal de notas &gt; guarda, etiqueta y encuentra</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== CONTROLES ==================== -->
+    <div class="controls">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Buscar por título o tag...">
+      </div>
+      <button id="newNoteBtn">+ Nueva nota</button>
+    </div>
+
+    <!-- ==================== FILTRO POR TAGS ==================== -->
+    <div class="tag-filters" id="tagFilters">
+      <span class="label">[ FILTRAR POR TAG ]</span>
+      <!-- Los botones se generan dinámicamente -->
+    </div>
+
+    <!-- ==================== LISTA DE NOTAS ==================== -->
+    <div class="notes-grid" id="notesGrid">
+      <!-- Las tarjetas se generan dinámicamente -->
+    </div>
+
+  </div>
+
+  <!-- ==================== MODAL CREAR / EDITAR ==================== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h2 id="modalTitle">Nueva nota</h2>
+      <form id="noteForm">
+        <input type="hidden" id="noteId">
+
+        <div class="form-group">
+          <label for="noteTitle">Nombre de la nota *</label>
+          <input type="text" id="noteTitle" required placeholder="Ej: Ideas para el proyecto">
+        </div>
+
+        <div class="form-group">
+          <label for="noteTags">Tags (separados por coma)</label>
+          <input type="text" id="noteTags" placeholder="Ej: trabajo, ideas, urgente">
+        </div>
+
+        <div class="form-group">
+          <label for="noteDesc">Descripción *</label>
+          <textarea id="noteDesc" required placeholder="Escribe aquí el contenido de la nota..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="cancelBtn">Cancelar</button>
+          <button type="submit" id="saveBtn">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+       1. ESTADO Y LOCALSTORAGE
+       ============================================================ */
+    const STORAGE_KEY = 'meow-notes';
+
+    // Cargar notas desde localStorage (o array vacío)
+    let notes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    // Filtros activos
+    let searchQuery = '';
+    let activeTag = null; // null = sin filtro por tag
+
+    /* ============================================================
+       2. REFERENCIAS AL DOM
+       ============================================================ */
+    const notesGrid = document.getElementById('notesGrid');
+    const tagFilters = document.getElementById('tagFilters');
+    const searchInput = document.getElementById('searchInput');
+    const newNoteBtn = document.getElementById('newNoteBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const noteForm = document.getElementById('noteForm');
+    const noteIdInput = document.getElementById('noteId');
+    const noteTitleInput = document.getElementById('noteTitle');
+    const noteTagsInput = document.getElementById('noteTags');
+    const noteDescInput = document.getElementById('noteDesc');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const saveBtn = document.getElementById('saveBtn');
+
+    /* ============================================================
+       3. UTILIDADES
+       ============================================================ */
+    // Guardar en localStorage
+    function saveNotes() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+    }
+
+    // Generar ID único
+    function generateId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    }
+
+    // Formatear fecha ISO a texto legible
+    function formatDate(isoString) {
+      if (!isoString) return '—';
+      const date = new Date(isoString);
+      return date.toLocaleString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    // Escapar HTML para evitar inyecciones
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    /* ============================================================
+       4. RENDERIZADO
+       ============================================================ */
+    // Renderizar la lista de notas (aplicando filtros de búsqueda y tag)
+    function renderNotes() {
+      // 1. Filtrar
+      let filtered = notes.filter(note => {
+        // Filtro por tag activo
+        if (activeTag && !note.tags.includes(activeTag)) return false;
+
+        // Filtro por búsqueda (título o tags)
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          const matchTitle = note.title.toLowerCase().includes(q);
+          const matchTags = note.tags.some(tag => tag.toLowerCase().includes(q));
+          if (!matchTitle && !matchTags) return false;
+        }
+
+        return true;
+      });
+
+      // 2. Ordenar por fecha de modificación (más reciente primero)
+      filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+      // 3. Renderizar
+      if (filtered.length === 0) {
+        notesGrid.innerHTML = `<div class="empty-state">[ SIN NOTAS ] — No hay resultados. Crea una nueva nota o cambia los filtros.</div>`;
+        return;
+      }
+
+      notesGrid.innerHTML = filtered.map(note => `
+        <div class="note-card">
+          <h2>${escapeHtml(note.title)}</h2>
+
+          <div class="note-tags">
+            ${note.tags.map(tag => `<span class="note-tag">#${escapeHtml(tag)}</span>`).join('')}
+          </div>
+
+          <div class="note-desc">${escapeHtml(note.description)}</div>
+
+          <div class="note-meta">
+            <span>[ CREADA ] ${formatDate(note.createdAt)}</span>
+            <span>[ MODIFICADA ] ${formatDate(note.updatedAt)}</span>
+          </div>
+
+          <div class="note-actions">
+            <button class="edit-btn" data-id="${note.id}">Editar</button>
+            <button class="delete-btn danger" data-id="${note.id}">Eliminar</button>
+          </div>
+        </div>
+      `).join('');
+
+      // Asignar eventos a los botones de editar/eliminar
+      document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => openEditModal(btn.dataset.id));
+      });
+
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteNote(btn.dataset.id));
+      });
+    }
+
+    // Renderizar los botones de filtro por tags
+    function renderTagFilters() {
+      // Obtener todos los tags únicos
+      const allTags = [...new Set(notes.flatMap(note => note.tags))].sort();
+
+      // Limpiar el contenedor (dejando la etiqueta "[ FILTRAR POR TAG ]")
+      tagFilters.innerHTML = '<span class="label">[ FILTRAR POR TAG ]</span>';
+
+      if (allTags.length === 0) {
+        tagFilters.innerHTML += '<span style="color:var(--fg-dim);font-size:12px;">(sin tags todavía)</span>';
+        return;
+      }
+
+      // Crear un botón por tag
+      allTags.forEach(tag => {
+        const btn = document.createElement('button');
+        btn.className = 'tag-btn' + (activeTag === tag ? ' active' : '');
+        btn.textContent = `#${tag}`;
+        btn.addEventListener('click', () => {
+          // Si ya está activo, quitamos el filtro
+          activeTag = (activeTag === tag) ? null : tag;
+          renderTagFilters();
+          renderNotes();
+        });
+        tagFilters.appendChild(btn);
+      });
+
+      // Botón para limpiar filtro si hay uno activo
+      if (activeTag) {
+        const clearBtn = document.createElement('button');
+        clearBtn.className = 'clear-filter';
+        clearBtn.textContent = '[ X limpiar filtro ]';
+        clearBtn.addEventListener('click', () => {
+          activeTag = null;
+          renderTagFilters();
+          renderNotes();
+        });
+        tagFilters.appendChild(clearBtn);
+      }
+    }
+
+    /* ============================================================
+       5. MODAL (CREAR / EDITAR)
+       ============================================================ */
+    function openNewModal() {
+      modalTitle.textContent = 'Nueva nota';
+      noteForm.reset();
+      noteIdInput.value = '';
+      modalOverlay.classList.add('open');
+      noteTitleInput.focus();
+    }
+
+    function openEditModal(id) {
+      const note = notes.find(n => n.id === id);
+      if (!note) return;
+
+      modalTitle.textContent = 'Editar nota';
+      noteIdInput.value = note.id;
+      noteTitleInput.value = note.title;
+      noteTagsInput.value = note.tags.join(', ');
+      noteDescInput.value = note.description;
+
+      modalOverlay.classList.add('open');
+      noteTitleInput.focus();
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('open');
+    }
+
+    /* ============================================================
+       6. CRUD DE NOTAS
+       ============================================================ */
+    // Guardar (crear o actualizar)
+    function handleFormSubmit(e) {
+      e.preventDefault();
+
+      const id = noteIdInput.value;
+      const title = noteTitleInput.value.trim();
+      const tagsRaw = noteTagsInput.value.trim();
+      const description = noteDescInput.value.trim();
+
+      // Validación básica
+      if (!title || !description) {
+        alert('El nombre y la descripción son obligatorios.');
+        return;
+      }
+
+      // Procesar tags: separar por coma, limpiar espacios y eliminar vacíos
+      const tags = tagsRaw
+        ? tagsRaw.split(',').map(t => t.trim()).filter(t => t !== '')
+        : [];
+
+      const now = new Date().toISOString();
+
+      if (id) {
+        // EDITAR nota existente
+        const index = notes.findIndex(n => n.id === id);
+        if (index !== -1) {
+          notes[index] = {
+            ...notes[index],
+            title,
+            tags,
+            description,
+            updatedAt: now
+          };
+        }
+      } else {
+        // CREAR nueva nota
+        const newNote = {
+          id: generateId(),
+          title,
+          tags,
+          description,
+          createdAt: now,
+          updatedAt: now
+        };
+        notes.push(newNote);
+      }
+
+      saveNotes();
+      renderTagFilters();
+      renderNotes();
+      closeModal();
+    }
+
+    // Eliminar nota
+    function deleteNote(id) {
+      if (!confirm('¿Eliminar esta nota permanentemente?')) return;
+      notes = notes.filter(n => n.id !== id);
+      saveNotes();
+      renderTagFilters();
+      renderNotes();
+    }
+
+    /* ============================================================
+       7. EVENTOS
+       ============================================================ */
+    // Búsqueda en tiempo real
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.trim();
+      renderNotes();
+    });
+
+    // Botón "Nueva nota"
+    newNoteBtn.addEventListener('click', openNewModal);
+
+    // Cancelar modal
+    cancelBtn.addEventListener('click', closeModal);
+
+    // Cerrar modal al hacer clic fuera
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+
+    // Envío del formulario
+    noteForm.addEventListener('submit', handleFormSubmit);
+
+    // Cerrar modal con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    /* ============================================================
+       8. INICIALIZACIÓN
+       ============================================================ */
+    function init() {
+      // Si no hay notas, crear una nota de bienvenida (opcional)
+      if (notes.length === 0) {
+        notes.push({
+          id: generateId(),
+          title: 'Bienvenido a Meow Notes',
+          tags: ['meow', 'bienvenida'],
+          description: 'Esta es una nota de ejemplo. Puedes editarla o eliminarla.\n\nUsa los tags para organizar tus notas y la barra de búsqueda para encontrarlas rápido.',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+        saveNotes();
+      }
+
+      renderTagFilters();
+      renderNotes();
+    }
+
+    init();
+  </script>
+</body>
+</html>
