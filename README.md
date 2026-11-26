@@ -1,4 +1,4 @@
-<div align="center">[![Validate](https://github.com/TU-USUARIO/TU-REPO/actions/workflows/validate.yml/badge.svg)](https://github.com/TU-USUARIO/TU-REPO/actions/workflows/validate.yml)
+<div align="center">
 
 
 # 🐱 Meow Notes App
@@ -71,3 +71,6 @@ La PWA **no funciona abriendo `index.html` con doble clic** (`file://`). Necesit
 git clone https://github.com/TU-USUARIO/TU-REPO.git
 cd TU-REPO
 python3 -m http.server 8000
+
+
+[![Validate](https://github.com/TU-USUARIO/TU-REPO/actions/workflows/validate.yml/badge.svg)](https://github.com/TU-USUARIO/TU-REPO/actions/workflows/validate.yml)
