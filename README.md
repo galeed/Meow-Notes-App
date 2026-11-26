@@ -1,4 +1,4 @@
-<div align="center">
+<div align="center">[![Validate](https://github.com/TU-USUARIO/TU-REPO/actions/workflows/validate.yml/badge.svg)](https://github.com/TU-USUARIO/TU-REPO/actions/workflows/validate.yml)
 
 
 # 🐱 Meow Notes App
