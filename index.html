@@ -1141,7 +1141,13 @@ function togglePin(id) {
     function init() {
       // Aplicar tema (por si acaso JS en head no corrió)
       applyTheme();
-
+      
+// Normalizar notas antiguas (sin campo pinned)
+      let migrated = false;
+      notes.forEach(n => {
+        if (typeof n.pinned !== 'boolean') { n.pinned = false; migrated = true; }
+      });
+      if (migrated) saveNotes();
       // Nota de bienvenida
       if (notes.length === 0) {
         notes.push({
