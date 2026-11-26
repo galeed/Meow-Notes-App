@@ -431,6 +431,45 @@
     .status-bar.visible { opacity: 1; }
     .status-bar.offline { color: #ff5555; border-color: #ff5555; }
 
+
+/* ============================================================
+       PIN / FAVORITOS
+       ============================================================ */
+    .note-card.pinned {
+      border-color: var(--fg);
+      box-shadow: var(--glow-soft);
+    }
+    .note-card.pinned h2::before {
+      content: '★ ';
+      color: var(--fg);
+      text-shadow: var(--glow-soft);
+    }
+    .pin-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--fg-dim);
+      padding: 6px;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex: 0 0 auto;
+      box-shadow: none;
+    }
+    .pin-btn:hover {
+      border-color: var(--fg);
+      color: var(--fg);
+      box-shadow: var(--glow-soft);
+      background: transparent;
+    }
+    .pin-btn.active {
+      color: var(--fg);
+      border-color: var(--fg);
+      background: var(--panel);
+      text-shadow: var(--glow);
+    }
+    .note-actions .pin-btn { flex: 0 0 40px; }
+
     /* ============================================================
        RESPONSIVE
        ============================================================ */
@@ -777,7 +816,11 @@
         return true;
       });
 
-      filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      // Orden: pinned primero, luego por fecha de modificación
+      filtered.sort((a, b) => {
+        if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+        return new Date(b.updatedAt) - new Date(a.updatedAt);
+      });
 
       if (filtered.length === 0) {
         notesGrid.innerHTML = `<div class="empty-state">[ SIN NOTAS ] — No hay resultados. Crea una nueva nota o cambia los filtros.</div>`;
@@ -785,7 +828,7 @@
       }
 
       notesGrid.innerHTML = filtered.map(note => `
-        <div class="note-card">
+        <div class="note-card${note.pinned ? ' pinned' : ''}">
           <h2>${escapeHtml(note.title)}</h2>
           <div class="note-tags">
             ${note.tags.map(t => `<span class="note-tag">#${escapeHtml(t)}</span>`).join('')}
@@ -796,12 +839,20 @@
             <span>[ MODIFICADA ] ${formatDate(note.updatedAt)}</span>
           </div>
           <div class="note-actions">
+            <button class="pin-btn${note.pinned ? ' active' : ''}"
+                    data-id="${note.id}"
+                    title="${note.pinned ? 'Desanclar' : 'Anclar arriba'}"
+                    aria-label="${note.pinned ? 'Desanclar' : 'Anclar'}">
+              ${note.pinned ? '★' : '☆'}
+            </button>
             <button class="edit-btn" data-id="${note.id}">Editar</button>
             <button class="delete-btn danger" data-id="${note.id}">Eliminar</button>
           </div>
         </div>
       `).join('');
 
+      document.querySelectorAll('.pin-btn').forEach(btn =>
+        btn.addEventListener('click', () => togglePin(btn.dataset.id)));
       document.querySelectorAll('.edit-btn').forEach(btn =>
         btn.addEventListener('click', () => openEditModal(btn.dataset.id)));
       document.querySelectorAll('.delete-btn').forEach(btn =>
@@ -890,6 +941,15 @@
       renderNotes();
       broadcast('notes-updated');
       closeModal();
+    }
+
+function togglePin(id) {
+      const note = notes.find(n => n.id === id);
+      if (!note) return;
+      note.pinned = !note.pinned;
+      saveNotes();
+      renderNotes();
+      broadcast('notes-updated');
     }
 
     function deleteNote(id) {
