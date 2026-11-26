@@ -1,0 +1,106 @@
+name: Validate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate:
+    name: Validate PWA assets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate manifest.json syntax
+        run: |
+          echo "::group::Validando manifest.json"
+          node -e "
+            const fs = require('fs');
+            try {
+              const m = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+              const required = ['name', 'short_name', 'start_url', 'display', 'icons'];
+              const missing = required.filter(k => !(k in m));
+              if (missing.length) {
+                console.error('❌ Faltan campos obligatorios:', missing.join(', '));
+                process.exit(1);
+              }
+              if (!Array.isArray(m.icons) || m.icons.length === 0) {
+                console.error('❌ El manifest debe tener al menos un icono');
+                process.exit(1);
+              }
+              console.log('✅ manifest.json válido');
+              console.log('   name:', m.name);
+              console.log('   display:', m.display);
+              console.log('   icons:', m.icons.length);
+            } catch (e) {
+              console.error('❌ manifest.json inválido:', e.message);
+              process.exit(1);
+            }
+          "
+          echo "::endgroup::"
+
+      - name: Check JavaScript syntax
+        run: |
+          echo "::group::Verificando sw.js"
+          node --check sw.js
+          echo "✅ sw.js sin errores de sintaxis"
+          echo "::endgroup::"
+
+      - name: Verify required files exist
+        run: |
+          echo "::group::Archivos requeridos"
+          for f in index.html sw.js manifest.json icon.svg LICENSE README.md; do
+            if [ -f "$f" ]; then
+              echo "✅ $f"
+            else
+              echo "❌ $f no existe"
+              exit 1
+            fi
+          done
+          echo "::endgroup::"
+
+      - name: Validate HTML basic structure
+        run: |
+          echo "::group::Estructura HTML"
+          node -e "
+            const fs = require('fs');
+            const html = fs.readFileSync('index.html', 'utf8');
+            const checks = [
+              ['<!DOCTYPE html>', 'DOCTYPE'],
+              ['<html', 'etiqueta html'],
+              ['<head>', 'etiqueta head'],
+              ['<body>', 'etiqueta body'],
+              ['manifest.json', 'link al manifest'],
+              ['sw.js', 'referencia al service worker']
+            ];
+            let failed = false;
+            for (const [needle, name] of checks) {
+              if (html.includes(needle)) {
+                console.log('✅ ' + name);
+              } else {
+                console.error('❌ Falta ' + name);
+                failed = true;
+              }
+            }
+            if (failed) process.exit(1);
+          "
+          echo "::endgroup::"
+
+      - name: Check for inline scripts in head (theme pre-load)
+        run: |
+          # Verifica que el script de tema en <head> exista para evitar FOUC
+          if grep -q "meow-mode" index.html; then
+            echo "✅ Script de tema pre-carga presente"
+          else
+            echo "❌ Falta el script inline de pre-carga del tema"
+            exit 1
+          fi
