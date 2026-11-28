@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: 📖 Documentación y guía de contribución
+    url: https://github.com/TU-USUARIO/TU-REPO/blob/main/CONTRIBUTING.md
+    about: Antes de abrir un issue, revisa la guía de contribución.
+
+  - name: 💬 Preguntas y dudas
+    url: https://github.com/TU-USUARIO/TU-REPO/discussions
+    about: Para preguntas generales usa Discussions en lugar de issues.
+
+  - name: 🌐 App online (demo)
+    url: https://TU-USUARIO.github.io/TU-REPO/
+    about: Prueba la última versión antes de reportar un bug.
