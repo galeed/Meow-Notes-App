@@ -2,7 +2,7 @@ blank_issues_enabled: false
 
 contact_links:
   - name: 📖 Documentación y guía de contribución
-    url: https://github.com/TU-USUARIO/TU-REPO/blob/main/CONTRIBUTING.md
+    url: https://github.com/galeed/Meow-Notes-App/blob/main/CONTRIBUTING.md
     about: Antes de abrir un issue, revisa la guía de contribución.
 
   - name: 💬 Preguntas y dudas
